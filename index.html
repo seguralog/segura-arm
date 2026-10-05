@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEGURA ARM - Sistema de Manutenção</title>
+    
+    <!-- Ícone do Navegador (Favicon) -->
+    <link rel="icon" href="logo_cavalo.png" type="image/png">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #ea580c; border-radius: 4px; }
+        ::-webkit-scrollbar-track { background: #f5f5f5; }
+        .aba-conteudo { display: none; }
+        .aba-conteudo.ativa { display: block; }
+    </style>
+</head>
+<body class="bg-neutral-100 font-sans text-neutral-800 flex h-screen overflow-hidden relative">
+
+    <!-- LOGIN SESSÃO (SELETOR DE FILIAL) -->
+    <div id="modalSessao" class="fixed inset-0 bg-black z-[100] flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden text-center p-8 space-y-6 border-t-4 border-orange-600">
+            
+            <!-- LOGO LOGIN -->
+            <div class="mx-auto h-20 mb-4 flex items-center justify-center">
+                <img src="logo_segura.png" alt="Segura Logística" class="max-h-full object-contain" onerror="this.outerHTML='<div class=\\'bg-orange-600 text-white w-16 h-16 rounded-2xl flex items-center justify-center font-black text-4xl shadow-lg\\'>S</div>'">
+            </div>
+
+            <div>
+                <h2 class="text-2xl font-black text-neutral-900 uppercase tracking-wide">Gestão de Armazéns</h2>
+            </div>
+            <div class="text-left">
+                <label class="font-bold text-neutral-700 text-xs">Filial Operacional</label>
+                <select id="selectSessaoFilial" class="w-full border-2 border-neutral-200 rounded-lg p-3 mt-1 bg-neutral-50 font-bold text-orange-700 outline-none focus:border-orange-500 transition">
+                    <option value="">Carregando...</option>
+                </select>
+            </div>
+            <button onclick="iniciarSessao()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-lg shadow-md transition uppercase tracking-wider">Entrar</button>
+        </div>
+    </div>
+
+    <!-- MENU LATERAL -->
+    <aside class="w-64 bg-neutral-900 text-neutral-300 flex flex-col shadow-xl z-20 overflow-y-auto">
+        <div class="p-5 border-b border-neutral-800 flex items-center gap-3 bg-black">
+            
+            <!-- LOGO MENU -->
+            <img src="logo_cavalo.png" alt="Logo" class="h-8 w-8 object-contain" onerror="this.outerHTML='<div class=\\'bg-orange-600 text-white p-1.5 rounded-lg font-black text-lg flex items-center justify-center w-8 h-8\\'>S</div>'">
+            
+            <div>
+                <h1 class="font-bold text-white text-sm leading-tight tracking-wide">SEGURA ARM</h1>
+                <p class="text-[10px] text-orange-500 font-bold uppercase tracking-wider">● Online</p>
+            </div>
+        </div>
+        <nav class="p-3 space-y-1 text-sm font-medium">
+            <p class="px-3 pt-3 pb-1 text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Módulo Manutenção</p>
+            <button onclick="mudarAba('dashboard')" id="btn-dashboard" class="btn-menu w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-neutral-300 hover:bg-neutral-800 transition"><span>📊</span> Dashboard</button>
+            <button onclick="mudarAba('despesas')" id="btn-despesas" class="btn-menu w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-neutral-300 hover:bg-neutral-800 transition"><span>🧾</span> Lançamentos (NFs)</button>
+            <button onclick="mudarAba('custos')" id="btn-custos" class="btn-menu w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-neutral-300 hover:bg-neutral-800 transition"><span>💲</span> Matriz de Custos</button>
+            <button onclick="mudarAba('contratos')" id="btn-contratos" class="btn-menu w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-neutral-300 hover:bg-neutral-800 transition"><span>📑</span> Contratos Fixos</button>
+            <button onclick="mudarAba('preventivas')" id="btn-preventivas" class="btn-menu w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-neutral-300 hover:bg-neutral-800 transition"><span>🛠️</span> Painel Preventivas</button>
+            <button onclick="mudarAba('frota')" id="btn-frota" class="btn-menu w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-neutral-300 hover:bg-neutral-800 transition"><span>🚜</span> Gestão de Frota</button>
+            
+            <p class="px-3 pt-5 pb-1 text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Cadastros Globais</p>
+            <button onclick="mudarAba('fornecedores')" id="btn-fornecedores" class="btn-menu w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-neutral-300 hover:bg-neutral-800 transition"><span>⚙️</span> Fornecedores</button>
+            <button onclick="mudarAba('filiais')" id="btn-filiais" class="btn-menu w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-neutral-300 hover:bg-neutral-800 transition"><span>🏢</span> Filiais</button>
+            <button onclick="mudarAba('usuarios')" id="btn-usuarios" class="btn-menu w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-neutral-300 hover:bg-neutral-800 transition"><span>🔐</span> Usuários e Acessos</button>
+        </nav>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL -->
+    <div class="flex-1 flex flex-col h-screen overflow-y-auto">
+        <!-- HEADER SESSÃO -->
+        <header class="bg-white border-b border-neutral-200 px-6 py-3 flex justify-between items-center sticky top-0 z-10 shadow-sm">
+            <h2 id="titulo-pagina" class="text-lg font-black text-neutral-900 uppercase tracking-wide">Lançamentos</h2>
+            <div class="flex items-center gap-3 bg-neutral-100 px-3 py-1.5 rounded-lg border border-neutral-200">
+                <span class="text-xs text-neutral-500 font-bold">🏢 <span id="lblFilialSessao" class="text-orange-700">Carregando...</span></span>
+                <button onclick="document.getElementById('modalSessao').classList.remove('hidden')" class="text-[10px] text-orange-600 hover:text-orange-800 hover:underline ml-1 border-l border-neutral-300 pl-3">Trocar Filial</button>
+                <div class="w-px h-4 bg-neutral-300 mx-1"></div>
+                <span class="text-xs text-neutral-500 font-bold">📅 Período (Dash):</span>
+                <select id="filtroGlobalPeriodo" onchange="carregarContextoLocal()" class="text-xs bg-transparent font-bold text-neutral-900 outline-none border-none cursor-pointer">
+                    <option value="mes_atual">Mês Atual</option>
+                    <option value="3m">Últimos 3 Meses</option>
+                    <option value="6m">Últimos 6 Meses</option>
+                    <option value="1a">Último Ano</option>
+                    <option value="tudo">Todo o Histórico</option>
+                </select>
+            </div>
+        </header>
+
+        <main class="p-6 space-y-6">
+
+            <!-- 1. ABA LANÇAMENTOS -->
+            <div id="aba-despesas" class="aba-conteudo ativa space-y-6">
+                <!-- XML DND -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-neutral-200 space-y-4">
+                    <h3 class="font-bold text-neutral-900 text-sm border-b pb-2">Leitor Automático de NF-e e NFS-e</h3>
+                    <div id="drop-zone" class="border-2 border-dashed border-orange-300 bg-orange-50/30 hover:bg-orange-50 transition rounded-xl p-6 text-center cursor-pointer flex flex-col items-center gap-2">
+                        <div class="bg-orange-600 text-white p-3 rounded-full"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg></div>
+                        <p class="text-xs font-bold text-neutral-800">Clique ou arraste o .xml aqui</p>
+                        <p class="text-[10px] text-neutral-500">Lê Notas de Produto (SEFAZ) e Serviço (Prefeituras)</p>
+                        <input type="file" id="inputXmlFile" accept=".xml" class="hidden">
+                    </div>
+                    <div id="status-xml-msg" class="hidden text-xs p-3 rounded-lg flex items-center gap-2 font-medium"></div>
+                </div>
+
+                <!-- FORM LANÇAMENTO -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-neutral-200 space-y-4">
+                    <div class="flex justify-between items-center border-b pb-2">
+                        <h3 class="font-bold text-neutral-900 text-sm">Dados da Despesa <span class="text-xs text-orange-600 font-normal">(Registra na Filial Ativa)</span></h3>
+                        <button type="button" onclick="limparFormularioNf()" class="text-xs text-neutral-400 font-bold hover:text-neutral-700 transition">Limpar Formulário</button>
+                    </div>
+                    <form id="formLancarNf" class="space-y-4">
+                        <input type="hidden" id="inputIdEdicaoNf">
+                        <div>
+                            <label class="font-bold text-neutral-700 text-xs">Chave de Acesso (Deixe em branco se for NFS-e sem chave)</label>
+                            <input type="text" id="inputChaveXml" maxlength="44" class="w-full border rounded p-2 mt-1 bg-neutral-50 font-mono text-xs font-bold text-neutral-800">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 text-xs">
+                            <div>
+                                <label class="font-bold text-neutral-700">Máquina / Equipamento *</label>
+                                <select id="inputEquipamento" class="w-full border rounded p-2 mt-1 font-bold text-orange-700 focus:border-orange-500 outline-none" required>
+                                    <option value="">Selecione a máquina (Frota Local)...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="font-bold text-neutral-700">Horímetro no Momento do Lançamento *</label>
+                                <input type="number" id="inputHorimetro" class="w-full border rounded p-2 mt-1 font-bold focus:border-orange-500 outline-none" required>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-4 gap-4 text-xs">
+                            <div><label class="font-bold text-neutral-700">CNPJ Fornecedor *</label><input type="text" id="inputCnpj" class="w-full border rounded p-2 mt-1 bg-neutral-50 focus:border-orange-500 outline-none" required onblur="this.value = formatarCNPJ(this.value)"></div>
+                            <div><label class="font-bold text-neutral-700">Razão Social *</label><input type="text" id="inputRazaoSocial" class="w-full border rounded p-2 mt-1 bg-neutral-50 focus:border-orange-500 outline-none" required></div>
+                            <div><label class="font-bold text-neutral-700">Nº NF *</label><input type="text" id="inputNf" class="w-full border rounded p-2 mt-1 font-bold focus:border-orange-500 outline-none" required></div>
+                            <div><label class="font-bold text-neutral-700">Data Emissão *</label><input type="date" id="inputDataEmissao" class="w-full border rounded p-2 mt-1 focus:border-orange-500 outline-none" required></div>
+                        </div>
+                        <div class="grid grid-cols-4 gap-4 text-xs">
+                            <div><label class="font-bold text-neutral-700">Tipo *</label><select id="inputTipoManutencao" class="w-full border rounded p-2 mt-1 font-bold text-black focus:border-orange-500 outline-none" required><option value="Preventiva">Preventiva (Reseta Ciclo)</option><option value="Corretiva">Corretiva (Apenas Custo)</option></select></div>
+                            <div><label class="font-bold text-neutral-700">Causa da Quebra</label><select id="inputCausa" class="w-full border rounded p-2 mt-1 focus:border-orange-500 outline-none"><option value="Nenhuma">Nenhuma</option><option value="Piso/Infraestrutura">Piso/Infraestrutura</option><option value="Mau Uso">Mau Uso</option><option value="Desgaste Natural">Desgaste Natural</option></select></div>
+                            <div>
+                                <label class="font-bold text-neutral-700">Categoria (Gasto) *</label>
+                                <select id="inputCategoria" class="w-full border rounded p-2 mt-1 focus:border-orange-500 outline-none" required>
+                                    <option>Pneus e Rodas</option><option>Baterias e Carregadores</option><option>Sistema GLP e Motor</option><option>Sistema Elétrico e Módulos</option><option>Sistema Hidráulico (Torre, Cilindros)</option><option>Freios e Transmissão</option><option>Acessórios e Segurança</option><option>Mão de Obra Externa</option><option>Preventiva Geral</option>
+                                </select>
+                            </div>
+                            <div><label class="font-bold text-neutral-700">Valor (R$) *</label><input type="number" step="0.01" id="inputValor" class="w-full border rounded p-2 mt-1 font-bold text-orange-600 focus:border-orange-500 outline-none" required></div>
+                        </div>
+                        <div class="flex justify-end pt-2"><button type="submit" id="btnSalvarL" class="bg-orange-600 hover:bg-orange-700 text-white font-bold px-8 py-3 rounded shadow transition">Salvar Despesa</button></div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 2. ABA DASHBOARD (EXECUTIVO) -->
+            <div id="aba-dashboard" class="aba-conteudo space-y-6">
+                <!-- LINHA 1: FINANCEIRO -->
+                <div>
+                    <h3 class="font-black text-neutral-800 text-xs mb-3 uppercase tracking-wider border-b border-neutral-200 pb-2">Indicadores Financeiros (Período Selecionado)</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-neutral-200 border-b-4 border-b-black"><p class="text-[10px] font-bold text-neutral-500 uppercase">Custo Total (Operação)</p><h3 id="dashTotal" class="text-xl font-black text-black mt-1">R$ 0,00</h3></div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-neutral-200 border-b-4 border-b-orange-600"><p class="text-[10px] font-bold text-neutral-500 uppercase">Custo Variável (NFs)</p><h3 id="dashVar" class="text-xl font-black text-orange-700 mt-1">R$ 0,00</h3></div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-neutral-200 border-b-4 border-b-neutral-400"><p class="text-[10px] font-bold text-neutral-500 uppercase">Custo Fixo (Contratos)</p><h3 id="dashFix" class="text-xl font-black text-neutral-600 mt-1">R$ 0,00</h3></div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-neutral-200 border-b-4 border-b-red-500"><p class="text-[10px] font-bold text-neutral-500 uppercase">Gastos Corretivos</p><h3 id="dashValCorr" class="text-xl font-black text-red-600 mt-1">R$ 0,00</h3></div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-neutral-200 border-b-4 border-b-emerald-500"><p class="text-[10px] font-bold text-neutral-500 uppercase">Gastos Preventivos</p><h3 id="dashValPrev" class="text-xl font-black text-emerald-600 mt-1">R$ 0,00</h3></div>
+                    </div>
+                </div>
+
+                <!-- LINHA 2: OPERACIONAL -->
+                <div>
+                    <h3 class="font-black text-neutral-800 text-xs mb-3 uppercase tracking-wider border-b border-neutral-200 pb-2">Indicadores Operacionais (Período Selecionado)</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-neutral-200"><p class="text-[10px] font-bold text-neutral-500 uppercase">Manutenções Realizadas</p><h3 id="dashNfs" class="text-xl font-black text-neutral-900 mt-1">0 <span class="text-[10px] text-neutral-400 font-bold uppercase">NFs</span></h3></div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-neutral-200"><p class="text-[10px] font-bold text-neutral-500 uppercase">Equipamentos Atendidos</p><h3 id="dashEqAtendidos" class="text-xl font-black text-neutral-900 mt-1">0 <span class="text-[10px] text-neutral-400 font-bold uppercase">Máquinas</span></h3></div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-neutral-200"><p class="text-[10px] font-bold text-neutral-500 uppercase">Ticket Médio (Por NF)</p><h3 id="dashTicket" class="text-xl font-black text-neutral-900 mt-1">R$ 0,00</h3></div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-neutral-200"><p class="text-[10px] font-bold text-neutral-500 uppercase">Índice de Corretivas</p><h3 id="dashTaxaCorr" class="text-xl font-black text-red-600 mt-1">0%</h3></div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-neutral-200 bg-orange-50"><p class="text-[10px] font-bold text-orange-800 uppercase">Custo / Hora (Geral)</p><h3 id="dashCphGeral" class="text-xl font-black text-orange-900 mt-1">R$ 0,00 <span class="text-[10px] font-bold">/h</span></h3></div>
+                    </div>
+                </div>
+
+                <!-- LINHA 3: 4 GRÁFICOS -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-neutral-200"><h3 class="font-bold text-neutral-900 text-xs mb-3 border-b pb-1">Despesas por Categoria</h3><div class="h-48 relative"><canvas id="chartCat"></canvas></div></div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-neutral-200"><h3 class="font-bold text-neutral-900 text-xs mb-3 border-b pb-1">Causas de Corretivas</h3><div class="h-48 relative"><canvas id="chartCau"></canvas></div></div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-neutral-200"><h3 class="font-bold text-neutral-900 text-xs mb-3 border-b pb-1">Top Vilões (R$ Gasto por Máquina)</h3><div class="h-48 relative"><canvas id="chartEqCustos"></canvas></div></div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-neutral-200"><h3 class="font-bold text-neutral-900 text-xs mb-3 border-b pb-1">Evolução Mensal de Custos (NFs)</h3><div class="h-48 relative"><canvas id="chartEvolucao"></canvas></div></div>
+                </div>
+            </div>
+
+            <!-- 3. ABA MATRIZ DE CUSTOS -->
+            <div id="aba-custos" class="aba-conteudo space-y-4">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-neutral-200">
+                    <div class="flex justify-between items-center border-b pb-2 mb-3">
+                        <h3 class="font-bold text-neutral-900">Histórico e Auditoria de Notas Fiscais</h3>
+                        <button onclick="exportarExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded text-xs font-bold transition shadow flex items-center gap-2">
+                            📥 Exportar Excel
+                        </button>
+                    </div>
+                    
+                    <!-- MINI DASHBOARD DA MATRIZ -->
+                    <div class="flex flex-col md:flex-row justify-between items-center bg-neutral-900 p-4 rounded-xl mb-4 shadow-md text-white">
+                        <div class="mb-2 md:mb-0">
+                            <p class="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Custo Total (Com Filtros)</p>
+                            <h3 id="matrizTotalValor" class="text-2xl font-black text-orange-500">R$ 0,00</h3>
+                        </div>
+                        <div class="flex gap-6 text-right">
+                            <div>
+                                <p class="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Preventivas</p>
+                                <h4 id="matrizTotalPrev" class="text-lg font-bold text-emerald-400">0</h4>
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Corretivas</p>
+                                <h4 id="matrizTotalCorr" class="text-lg font-bold text-red-400">0</h4>
+                            </div>
+                            <div class="border-l border-neutral-700 pl-6">
+                                <p class="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Total Registros</p>
+                                <h3 id="matrizTotalQtd" class="text-xl font-bold">0 NFs</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-6 gap-2 mb-4 bg-neutral-50 p-3 rounded-lg border border-neutral-200">
+                        <!-- O filtro fMatrizMes agora é 100% isolado do Dashboard -->
+                        <div><label class="text-[10px] font-bold text-neutral-500 uppercase">Mês Emissão</label><input type="month" id="fMatrizMes" onchange="aplicarFiltrosMatriz()" class="w-full border rounded p-1.5 text-xs focus:border-orange-500 outline-none cursor-pointer"></div>
+                        <div><label class="text-[10px] font-bold text-neutral-500 uppercase">Buscar NFs</label><input type="text" id="fMatrizNF" onkeyup="aplicarFiltrosMatriz()" placeholder="Digite o nº..." class="w-full border rounded p-1.5 text-xs focus:border-orange-500 outline-none"></div>
+                        <div><label class="text-[10px] font-bold text-neutral-500 uppercase">Máquina (TAG)</label><select id="fMatrizTag" onchange="aplicarFiltrosMatriz()" class="w-full border rounded p-1.5 text-xs bg-white focus:border-orange-500 outline-none"><option value="">Todas</option></select></div>
+                        <div><label class="text-[10px] font-bold text-neutral-500 uppercase">Fornecedor</label><select id="fMatrizForn" onchange="aplicarFiltrosMatriz()" class="w-full border rounded p-1.5 text-xs bg-white focus:border-orange-500 outline-none"><option value="">Todos</option></select></div>
+                        <div><label class="text-[10px] font-bold text-neutral-500 uppercase">Tipo</label><select id="fMatrizTipo" onchange="aplicarFiltrosMatriz()" class="w-full border rounded p-1.5 text-xs bg-white focus:border-orange-500 outline-none"><option value="">Todos</option><option value="Preventiva">Preventiva</option><option value="Corretiva">Corretiva</option></select></div>
+                        <div><label class="text-[10px] font-bold text-neutral-500 uppercase">Categoria</label><select id="fMatrizCat" onchange="aplicarFiltrosMatriz()" class="w-full border rounded p-1.5 text-xs bg-white focus:border-orange-500 outline-none"><option value="">Todas</option></select></div>
+                    </div>
+                    <div class="rounded-xl border border-neutral-200 overflow-hidden">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-black text-white uppercase font-bold">
+                                <tr><th class="p-3">Data</th><th class="p-3">NF / Fornecedor</th><th class="p-3">TAG (Máquina)</th><th class="p-3">Tipo</th><th class="p-3">Categoria</th><th class="p-3 text-right">Valor Total</th><th class="p-3 text-center">Ações</th></tr>
+                            </thead>
+                            <tbody id="tblCustos" class="divide-y divide-neutral-200 font-medium bg-white">
+                                <tr><td colspan="7" class="p-4 text-center text-neutral-400">Carregando dados...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. ABA CONTRATOS -->
+            <div id="aba-contratos" class="aba-conteudo space-y-4">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-neutral-200 flex justify-between items-center">
+                    <h3 class="font-bold text-neutral-900">Contratos da Filial</h3>
+                    <button onclick="abrirEdicao('contrato')" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-xs font-bold transition shadow">+ Cadastrar Contrato</button>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-neutral-100 font-bold text-neutral-700 uppercase"><tr><th class="p-3">Descrição</th><th class="p-3">Fornecedor</th><th class="p-3">Vencimento</th><th class="p-3 text-right">Valor Mensal</th><th class="p-3 text-center">Ações</th></tr></thead>
+                        <tbody id="tblContratos" class="divide-y divide-neutral-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 5. ABA PREVENTIVAS -->
+            <div id="aba-preventivas" class="aba-conteudo space-y-4">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-neutral-200 flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-neutral-900">Painel Controle de Preventivas</h3>
+                        <p class="text-xs text-neutral-500">As preventivas são resetadas automaticamente ao lançar uma NF do tipo "Preventiva".</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="cardsPreventivas"></div>
+            </div>
+
+            <!-- 6. ABA FROTA -->
+            <div id="aba-frota" class="aba-conteudo space-y-4">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-neutral-200 flex justify-between items-center">
+                    <h3 class="font-bold text-neutral-900">Máquinas da Filial</h3>
+                    <button onclick="abrirEdicao('equipamento')" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-xs font-bold transition shadow">+ Nova Máquina</button>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-neutral-100 font-bold text-neutral-700 uppercase"><tr><th class="p-3">Série / TAG</th><th class="p-3">Modelo</th><th class="p-3 text-right">Horímetro Atual</th><th class="p-3 text-center">Ciclo Prev.</th><th class="p-3 text-center">Ações</th></tr></thead>
+                        <tbody id="tblFrota" class="divide-y divide-neutral-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 7. ABA FORNECEDORES -->
+            <div id="aba-fornecedores" class="aba-conteudo space-y-4">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-neutral-200 flex justify-between items-center">
+                    <div><h3 class="font-bold text-neutral-900">Fornecedores (Global)</h3><p class="text-xs text-neutral-500">Base compartilhada entre todas as filiais.</p></div>
+                    <button onclick="abrirEdicao('fornecedor')" class="bg-black hover:bg-neutral-800 text-white px-4 py-2 rounded text-xs font-bold transition shadow">+ Novo Fornecedor</button>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-neutral-100 font-bold text-neutral-700 uppercase"><tr><th class="p-3">Fornecedor</th><th class="p-3">CNPJ</th><th class="p-3 text-center">Ações</th></tr></thead>
+                        <tbody id="tblForn" class="divide-y divide-neutral-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 8. ABA FILIAIS -->
+            <div id="aba-filiais" class="aba-conteudo space-y-4">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-neutral-200 flex justify-between items-center">
+                    <h3 class="font-bold text-neutral-900">Gestão de Filiais</h3>
+                    <button onclick="abrirEdicao('filial')" class="bg-black hover:bg-neutral-800 text-white px-4 py-2 rounded text-xs font-bold transition shadow">+ Nova Filial</button>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-neutral-50 font-bold text-neutral-700 uppercase border-b"><tr><th class="p-3">Filial</th><th class="p-3">CNPJ</th><th class="p-3">Cidade/UF</th><th class="p-3 text-center">Ações</th></tr></thead>
+                        <tbody id="tblFiliais" class="divide-y divide-neutral-100 text-neutral-800"><tr><td colspan="4" class="p-4 text-center text-neutral-400">Carregando filiais...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 9. ABA USUÁRIOS -->
+            <div id="aba-usuarios" class="aba-conteudo space-y-4">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-neutral-200 flex justify-between items-center">
+                    <h3 class="font-bold text-neutral-900">Gestão de Usuários</h3>
+                    <button onclick="abrirEdicao('usuario')" class="bg-black hover:bg-neutral-800 text-white px-4 py-2 rounded text-xs font-bold transition shadow">+ Novo Usuário</button>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-neutral-100 font-bold text-neutral-700 uppercase"><tr><th class="p-3">Usuário</th><th class="p-3 text-center">Perfil</th><th class="p-3 text-center">Filiais Acesso</th><th class="p-3 text-center">Ações</th></tr></thead>
+                        <tbody id="tblUsuarios" class="divide-y divide-neutral-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- =====================================
+         MODAIS DE CADASTRO/EDIÇÃO (CRUD)
+    ====================================== -->
+
+    <!-- Modal Contrato -->
+    <div id="modalContrato" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden border-t-4 border-orange-600">
+            <div class="bg-neutral-100 text-neutral-900 p-4 flex justify-between items-center border-b"><h3 id="tit_contrato" class="font-black text-sm uppercase">Contrato</h3><button type="button" onclick="document.getElementById('modalContrato').classList.add('hidden')" class="font-bold text-neutral-400 hover:text-black">✕</button></div>
+            <form id="formContrato" class="p-5 space-y-4 text-xs" onsubmit="salvarTabela(event, 'contratos_recorrentes')">
+                <input type="hidden" id="id_contrato">
+                <div><label class="font-bold text-neutral-600">Descrição *</label><input type="text" id="desc_contrato" class="w-full border rounded p-2 mt-1 focus:border-orange-500 outline-none" required></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="font-bold text-neutral-600">Fornecedor *</label><select id="forn_contrato" class="w-full border rounded p-2 mt-1 focus:border-orange-500 outline-none" required></select></div>
+                    <div><label class="font-bold text-neutral-600">Periodicidade</label><select id="per_contrato" class="w-full border rounded p-2 mt-1 focus:border-orange-500 outline-none"><option>Mensal</option><option>Anual</option></select></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="font-bold text-neutral-600">Vencimento *</label><input type="date" id="venc_contrato" class="w-full border rounded p-2 mt-1 focus:border-orange-500 outline-none" required></div>
+                    <div><label class="font-bold text-neutral-600">Valor Mensal R$ *</label><input type="number" step="0.01" id="val_contrato" class="w-full border rounded p-2 mt-1 font-bold text-orange-700 focus:border-orange-500 outline-none" required></div>
+                </div>
+                <div class="flex justify-end pt-3"><button type="submit" class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded font-bold shadow">Salvar</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Equipamento (Frota) -->
+    <div id="modalEquipamento" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-xl overflow-hidden border-t-4 border-orange-600">
+            <div class="bg-neutral-100 text-neutral-900 p-4 flex justify-between items-center border-b"><h3 id="tit_eq" class="font-black text-sm uppercase">Máquina da Frota</h3><button type="button" onclick="document.getElementById('modalEquipamento').classList.add('hidden')" class="font-bold text-neutral-400 hover:text-black">✕</button></div>
+            <form id="formEquipamento" class="p-5 space-y-4 text-xs" onsubmit="salvarTabela(event, 'equipamentos')">
+                <input type="hidden" id="id_eq">
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="font-bold text-neutral-600">Nº de Série *</label><input type="text" id="serie_eq" class="w-full border rounded p-2 mt-1 uppercase focus:border-orange-500 outline-none" required></div>
+                    <div><label class="font-bold text-neutral-600">TAG (ex: G01) *</label><input type="text" id="tag_eq" class="w-full border rounded p-2 mt-1 uppercase focus:border-orange-500 outline-none" required></div>
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div><label class="font-bold text-neutral-600">Marca</label><input type="text" id="marca_eq" class="w-full border rounded p-2 mt-1 focus:border-orange-500 outline-none"></div>
+                    <div><label class="font-bold text-neutral-600">Modelo</label><input type="text" id="modelo_eq" class="w-full border rounded p-2 mt-1 focus:border-orange-500 outline-none"></div>
+                    <div><label class="font-bold text-neutral-600">Ano</label><input type="number" id="ano_eq" class="w-full border rounded p-2 mt-1 focus:border-orange-500 outline-none"></div>
+                </div>
+                <div class="p-3 border rounded bg-orange-50/50 border-orange-200">
+                    <p class="font-bold text-orange-800 text-sm mb-2">Parâmetros de Preventiva</p>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div><label class="font-bold text-neutral-700">Horímetro Atual *</label><input type="number" id="hor_eq" class="w-full border border-orange-300 rounded p-2 mt-1 font-bold focus:border-orange-500 outline-none" required></div>
+                        <div><label class="font-bold text-neutral-700">Ciclo (Ex: 500) *</label><input type="number" id="ciclo_eq" class="w-full border border-orange-300 rounded p-2 mt-1 focus:border-orange-500 outline-none" required></div>
+                        <div><label class="font-bold text-neutral-700">Última Revisão *</label><input type="number" id="ult_eq" class="w-full border border-orange-300 rounded p-2 mt-1 focus:border-orange-500 outline-none" required></div>
+                    </div>
+                </div>
+                <div class="flex justify-end pt-3"><button type="submit" class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded font-bold shadow">Salvar Máquina</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Fornecedor -->
+    <div id="modalFornecedor" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden border-t-4 border-black">
+            <div class="bg-neutral-100 text-neutral-900 p-4 flex justify-between items-center border-b"><h3 id="tit_forn" class="font-black text-sm uppercase">Fornecedor</h3><button type="button" onclick="document.getElementById('modalFornecedor').classList.add('hidden')" class="font-bold text-neutral-400 hover:text-black">✕</button></div>
+            <form id="formFornecedor" class="p-5 space-y-4 text-xs" onsubmit="salvarTabela(event, 'fornecedores')">
+                <input type="hidden" id="id_forn">
+                <div><label class="font-bold text-neutral-600">CNPJ *</label><input type="text" id="cnpj_forn" class="w-full border rounded p-2 mt-1 focus:border-orange-500 outline-none" required onblur="this.value = formatarCNPJ(this.value)"></div>
+                <div><label class="font-bold text-neutral-600">Razão Social *</label><input type="text" id="rz_forn" class="w-full border rounded p-2 mt-1 focus:border-orange-500 outline-none" required></div>
+                <div><label class="font-bold text-neutral-600">Categoria</label><input type="text" id="cat_forn" class="w-full border rounded p-2 mt-1 focus:border-orange-500 outline-none"></div>
+                <div class="flex justify-end pt-3"><button type="submit" class="bg-black hover:bg-neutral-800 text-white px-6 py-2 rounded font-bold shadow">Salvar</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Filial -->
+    <div id="modalFilial" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden border-t-4 border-black">
+            <div class="bg-neutral-100 text-neutral-900 p-4 flex justify-between items-center border-b"><h3 id="tit_filial" class="font-black text-sm uppercase">Filial</h3><button type="button" onclick="document.getElementById('modalFilial').classList.add('hidden')" class="font-bold text-neutral-400 hover:text-black">✕</button></div>
+            <form id="formFilial" class="p-5 space-y-4 text-xs" onsubmit="salvarTabela(event, 'filiais')">
+                <input type="hidden" id="id_filial">
+                <div><label class="font-bold text-neutral-600">Nome (Identificação) *</label><input type="text" id="nome_filial" class="w-full border rounded p-2 mt-1 focus:border-orange-500 outline-none" required></div>
+                <div><label class="font-bold text-neutral-600">CNPJ</label><input type="text" id="cnpj_filial" class="w-full border rounded p-2 mt-1 focus:border-orange-500 outline-none"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="font-bold text-neutral-600">Cidade</label><input type="text" id="cid_filial" class="w-full border rounded p-2 mt-1 focus:border-orange-500 outline-none"></div>
+                    <div><label class="font-bold text-neutral-600">UF</label><input type="text" id="uf_filial" maxlength="2" class="w-full border rounded p-2 mt-1 uppercase focus:border-orange-500 outline-none"></div>
+                </div>
+                <div class="flex justify-end pt-3"><button type="submit" class="bg-black hover:bg-neutral-800 text-white px-6 py-2 rounded font-bold shadow">Salvar</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Usuário -->
+    <div id="modalUsuario" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border-t-4 border-black">
+            <div class="bg-neutral-100 text-neutral-900 p-4 flex justify-between items-center border-b"><h3 id="tit_usuario" class="font-black text-sm uppercase">Usuário</h3><button type="button" onclick="document.getElementById('modalUsuario').classList.add('hidden')" class="font-bold text-neutral-400 hover:text-black">✕</button></div>
+            <form id="formUsuario" class="p-5 space-y-4 text-xs" onsubmit="salvarUsuario(event)">
+                <input type="hidden" id="id_usuario">
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="font-bold text-neutral-600">Nome *</label><input type="text" id="nm_usr" class="w-full border rounded p-2 mt-1 focus:border-orange-500 outline-none" required></div>
+                    <div><label class="font-bold text-neutral-600">E-mail *</label><input type="email" id="em_usr" class="w-full border rounded p-2 mt-1 focus:border-orange-500 outline-none" required></div>
+                </div>
+                <div><label class="font-bold text-neutral-600 block mb-2">Acesso a quais Filiais? *</label>
+                    <div id="boxCheckFiliais" class="p-2 border rounded bg-neutral-50 border-neutral-200 space-y-1 max-h-24 overflow-y-auto"></div>
+                </div>
+                <div><label class="font-bold text-neutral-600">Perfil Base</label><select id="perf_usr" class="w-full border rounded p-2 mt-1 font-bold text-orange-700 focus:border-orange-500 outline-none"><option value="Admin">Administrador</option><option value="Operador">Operador (Restrito)</option></select></div>
+                <div class="flex justify-end pt-3"><button type="submit" class="bg-black hover:bg-neutral-800 text-white px-6 py-2 rounded font-bold shadow">Salvar Usuário</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         SISTEMA LÓGICO - JAVASCRIPT
+    =========================================== -->
+    <script>
+        const SUPABASE_URL = 'https://jkwhakxzjopdgbprkkth.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imprd2hha3h6am9wZGdicHJra3RoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3OTg4NTYsImV4cCI6MjEwNjM3NDg1Nn0.9O2XaS28WZ34xo-8rccIp6dPTww_XOhe9fEDGhK-F2g';
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let contextoApp = { filial: null };
+        let cache = { filiais: [], fornecedores: [], usuarios: [], frota: [], contratos: [], nfs_all_branch: [], nfs_periodo: [] };
+        let graficos = {};
+        window.dadosMatrizAtual = [];
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            // Inicializa a Matriz com o mês atual para ser leve
+            const date = new Date();
+            const mesAtual = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            document.getElementById('fMatrizMes').value = mesAtual;
+            
+            await iniciarSistemaGlobais();
+            configurarDragAndDrop();
+        });
+
+        // 1. INICIALIZAÇÃO E SESSÃO
+        async function iniciarSistemaGlobais() {
+            const { data } = await db.from('filiais').select('*').order('nome');
+            cache.filiais = data || [];
+            if(cache.filiais.length > 0) {
+                document.getElementById('selectSessaoFilial').innerHTML = cache.filiais.map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
+                document.getElementById('boxCheckFiliais').innerHTML = cache.filiais.map(f => `<label class="flex items-center gap-2"><input type="checkbox" value="${f.id}" class="chk-fil w-4 h-4 text-orange-600 accent-orange-600"> ${f.nome}</label>`).join('');
+            } else {
+                document.getElementById('selectSessaoFilial').innerHTML = '<option value="">Crie a matriz no banco primeiro</option>';
+            }
+        }
+
+        async function iniciarSessao() {
+            const sel = document.getElementById('selectSessaoFilial');
+            if(!sel.value) return alert("Selecione a Filial.");
+            contextoApp.filial = { id: sel.value, nome: sel.options[sel.selectedIndex].text };
+            
+            document.getElementById('modalSessao').classList.add('hidden');
+            document.getElementById('lblFilialSessao').innerText = contextoApp.filial.nome;
+            
+            mudarAba('dashboard');
+            await carregarContextoLocal();
+        }
+
+        // 2. FUNÇÃO DATA DE CORTE E CARREGAMENTO
+        function getLimitePeriodo() {
+            let p = document.getElementById('filtroGlobalPeriodo').value;
+            let d = new Date();
+            d.setDate(1); d.setHours(0,0,0,0);
+            if(p === 'mes_atual') return d;
+            if(p === '3m') { d.setMonth(d.getMonth() - 2); return d; }
+            if(p === '6m') { d.setMonth(d.getMonth() - 5); return d; }
+            if(p === '1a') { d.setFullYear(d.getFullYear() - 1); return d; }
+            return null; // 'tudo'
+        }
+
+        async function carregarContextoLocal() {
+            // Globais
+            const [rForn, rUsr, rFil] = await Promise.all([
+                db.from('fornecedores').select('*').order('razao_social'),
+                db.from('usuarios_permissoes').select('*'),
+                db.from('filiais').select('*')
+            ]);
+            cache.fornecedores = rForn.data || []; cache.usuarios = rUsr.data || []; cache.filiais = rFil.data || [];
+            
+            document.getElementById('forn_contrato').innerHTML = cache.fornecedores.map(f => `<option value="${f.id}">${f.razao_social}</option>`).join('');
+            
+            renderizarHTML('tblForn', cache.fornecedores.map(f => `<tr class="hover:bg-neutral-50"><td class="p-3 font-bold">${f.razao_social}</td><td class="p-3">${f.cnpj}</td><td class="p-3 text-center"><button onclick="abrirEdicao('fornecedor', ${f.id})" class="text-orange-600 hover:text-orange-800 mx-1">✏</button><button onclick="excluirBase('fornecedores', ${f.id})" class="text-neutral-500 hover:text-black mx-1">🗑️️</button></td></tr>`));
+            renderizarHTML('tblFiliais', cache.filiais.map(f => `<tr class="hover:bg-neutral-50"><td class="p-3 font-bold">${f.nome}</td><td class="p-3">${f.cnpj||'-'}</td><td class="p-3">${f.cidade||'-'}/${f.estado||'-'}</td><td class="p-3 text-center"><button onclick="abrirEdicao('filial', ${f.id})" class="text-orange-600 hover:text-orange-800 mx-1">✏️</button><button onclick="excluirBase('filiais', ${f.id})" class="text-neutral-500 hover:text-black mx-1">🗑️</button></td></tr>`));
+            renderizarHTML('tblUsuarios', cache.usuarios.map(u => `<tr class="hover:bg-neutral-50"><td class="p-3 font-bold">${u.nome_completo}<br><span class="text-[10px] text-neutral-500 font-normal">${u.email}</span></td><td class="p-3 text-center"><span class="bg-neutral-200 px-2 rounded text-[10px] font-bold text-neutral-800">${u.perfil_acesso}</span></td><td class="p-3 text-center">${(u.filiais_liberadas||'').split(',').length}</td><td class="p-3 text-center"><button onclick="abrirEdicao('usuario', ${u.id})" class="text-orange-600 hover:text-orange-800 mx-1">✏️</button><button onclick="excluirBase('usuarios_permissoes', ${u.id})" class="text-neutral-500 hover:text-black mx-1">🗑️</button></td></tr>`));
+
+            // Locais (Filial Atual)
+            const [rFrota, rContratos, rNfs] = await Promise.all([
+                db.from('equipamentos').select('*').eq('filial_id', contextoApp.filial.id),
+                db.from('contratos_recorrentes').select('*, fornecedores(razao_social)').eq('filial_id', contextoApp.filial.id),
+                db.from('despesas_nf').select('*, equipamentos(numero_serie, tag, horimetro_atual), fornecedores(cnpj, razao_social)').eq('filial_id', contextoApp.filial.id).order('data_emissao', { ascending: false })
+            ]);
+            
+            cache.frota = rFrota.data || []; 
+            cache.contratos = rContratos.data || [];
+            cache.nfs_all_branch = rNfs.data || []; 
+            
+            // O Filtro Global Periodo afeta SOMENTE a cache do Dashboard
+            let limitDate = getLimitePeriodo();
+            cache.nfs_periodo = cache.nfs_all_branch.filter(n => {
+                if(!n.data_emissao) return false;
+                if(!limitDate) return true; // 'tudo'
+                let dEmi = new Date(n.data_emissao + "T00:00:00");
+                return dEmi >= limitDate;
+            });
+            
+            document.getElementById('inputEquipamento').innerHTML = '<option value="">Selecione a Máquina (Frota Local)...</option>' + cache.frota.map(eq => `<option value="${eq.id}">${eq.tag} (${eq.numero_serie})</option>`).join('');
+
+            renderizarHTML('tblContratos', cache.contratos.map(c => `<tr class="hover:bg-neutral-50"><td class="p-3 font-bold">${c.descricao}</td><td class="p-3">${c.fornecedores?.razao_social||'-'}</td><td class="p-3">${c.data_vencimento ? c.data_vencimento.split('-').reverse().join('/') : '-'}</td><td class="p-3 text-right font-bold text-neutral-800">R$ ${c.valor_mensal.toFixed(2)}</td><td class="p-3 text-center"><button onclick="abrirEdicao('contrato', ${c.id})" class="text-orange-600 hover:text-orange-800 mx-1">✏️</button><button onclick="excluirBase('contratos_recorrentes', ${c.id})" class="text-neutral-500 hover:text-black mx-1">🗑️</button></td></tr>`));
+            renderizarHTML('tblFrota', cache.frota.map(e => `<tr class="hover:bg-neutral-50"><td class="p-3 font-bold text-orange-700">${e.tag} / ${e.numero_serie}</td><td class="p-3">${e.marca||'-'}</td><td class="p-3 text-right font-mono font-bold">${e.horimetro_atual}h</td><td class="p-3 text-center text-[10px] bg-neutral-200 rounded font-bold">${e.intervalo_preventiva}h</td><td class="p-3 text-center"><button onclick="abrirEdicao('equipamento', ${e.id})" class="text-orange-600 hover:text-orange-800 mx-1">✏</button><button onclick="excluirBase('equipamentos', ${e.id})" class="text-neutral-500 hover:text-black mx-1">🗑️</button></td></tr>`));
+
+            populaFiltrosMatriz();
+            aplicarFiltrosMatriz();
+            calcularDash();
+            calcularPreventivas();
+        }
+
+        // 3. MATRIZ DE CUSTOS, FILTROS E EXPORTAÇÃO
+        function populaFiltrosMatriz() {
+            // As listas de filtros da Matriz usam todo o banco para nao faltar opção
+            const tags = [...new Set(cache.nfs_all_branch.map(n => n.equipamentos?.tag).filter(Boolean))];
+            document.getElementById('fMatrizTag').innerHTML = '<option value="">Todas</option>' + tags.map(t => `<option value="${t}">${t}</option>`).join('');
+            
+            const forns = [...new Set(cache.nfs_all_branch.map(n => n.fornecedores?.razao_social).filter(Boolean))];
+            document.getElementById('fMatrizForn').innerHTML = '<option value="">Todos</option>' + forns.map(f => `<option value="${f}">${f}</option>`).join('');
+
+            const cats = [...new Set(cache.nfs_all_branch.map(n => n.categoria_gasto).filter(Boolean))];
+            document.getElementById('fMatrizCat').innerHTML = '<option value="">Todas</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
+
+        function aplicarFiltrosMatriz() {
+            const fMes = document.getElementById('fMatrizMes').value;
+            const fNf = document.getElementById('fMatrizNF').value.toLowerCase();
+            const fTag = document.getElementById('fMatrizTag').value;
+            const fForn = document.getElementById('fMatrizForn').value;
+            const fTipo = document.getElementById('fMatrizTipo').value;
+            const fCat = document.getElementById('fMatrizCat').value;
+
+            let valTotal = 0; let qtdPrev = 0; let qtdCorr = 0;
+
+            // A Matriz filtra DENTRO de todo o histórico, não dependendo do Dashboard
+            let filtrados = cache.nfs_all_branch.filter(n => {
+                let pMes = !fMes || (n.data_emissao && n.data_emissao.startsWith(fMes));
+                let pNf = !fNf || (n.numero_nf && n.numero_nf.toLowerCase().includes(fNf));
+                let pTag = !fTag || (n.equipamentos?.tag === fTag);
+                let pForn = !fForn || (n.fornecedores?.razao_social === fForn);
+                let pTipo = !fTipo || (n.tipo_manutencao === fTipo);
+                let pCat = !fCat || (n.categoria_gasto === fCat);
+                
+                let match = pMes && pNf && pTag && pForn && pTipo && pCat;
+                if(match) {
+                    valTotal += Number(n.valor_total);
+                    if(n.tipo_manutencao === 'Preventiva') qtdPrev++;
+                    else qtdCorr++;
+                }
+                return match;
+            });
+            
+            window.dadosMatrizAtual = filtrados;
+
+            document.getElementById('matrizTotalValor').innerText = `R$ ${valTotal.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+            document.getElementById('matrizTotalQtd').innerText = `${filtrados.length} NFs`;
+            document.getElementById('matrizTotalPrev').innerText = qtdPrev;
+            document.getElementById('matrizTotalCorr').innerText = qtdCorr;
+
+            renderizarHTML('tblCustos', filtrados.map(n => `
+                <tr class="hover:bg-orange-50">
+                    <td class="p-3">${n.data_emissao ? n.data_emissao.split('-').reverse().join('/') : '-'}</td>
+                    <td class="p-3 font-bold">${n.numero_nf}<br><span class="text-[10px] text-neutral-500 font-normal">${n.fornecedores?.razao_social}</span></td>
+                    <td class="p-3 text-orange-700 font-bold">${n.equipamentos?.tag||'-'}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${n.tipo_manutencao === 'Preventiva' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-red-100 text-red-800 border border-red-300'}">${n.tipo_manutencao}</span></td>
+                    <td class="p-3 text-[11px] font-bold text-neutral-600">${n.categoria_gasto}</td>
+                    <td class="p-3 text-right font-black">R$ ${n.valor_total.toFixed(2)}</td>
+                    <td class="p-3 text-center"><button onclick="abrirEdicao('despesa', ${n.id})" class="text-orange-600 hover:text-orange-800 mx-1">✏</button><button onclick="excluirBase('despesas_nf', ${n.id})" class="text-neutral-500 hover:text-black mx-1">🗑️</button></td>
+                </tr>
+            `));
+        }
+
+        function exportarExcel() {
+            if(window.dadosMatrizAtual.length === 0) return alert("Não há dados para exportar.");
+            let csv = "Data;NF;Fornecedor;Máquina (TAG);Tipo Manutenção;Categoria Gasto;Valor (R$)\n";
+            window.dadosMatrizAtual.forEach(n => {
+                let d = n.data_emissao ? n.data_emissao.split('-').reverse().join('/') : '';
+                let val = n.valor_total ? n.valor_total.toFixed(2).replace('.', ',') : '0,00';
+                csv += `${d};${n.numero_nf||''};${n.fornecedores?.razao_social||''};${n.equipamentos?.tag||''};${n.tipo_manutencao||''};${n.categoria_gasto||''};${val}\n`;
+            });
+            let blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+            let link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "Auditoria_Matriz_Custos.csv";
+            link.style.display = "none"; document.body.appendChild(link);
+            link.click(); document.body.removeChild(link);
+        }
+
+        // 4. PREVENTIVAS INTELIGENTE
+        function calcularPreventivas() {
+            const box = document.getElementById('cardsPreventivas');
+            if(cache.frota.length === 0) { box.innerHTML = '<p class="col-span-3 text-neutral-400">Nenhuma máquina cadastrada.</p>'; return; }
+            let html = '';
+            cache.frota.forEach(eq => {
+                const ult = eq.horimetro_ultima_preventiva || 0; const atual = eq.horimetro_atual || 0; const interv = eq.intervalo_preventiva || 500;
+                const alvo = ult + interv; const falta = alvo - atual;
+                let cor = 'bg-neutral-50 border-neutral-200 text-neutral-800'; let icone = '🟢 EM DIA';
+                if(falta <= 0) { cor = 'bg-orange-50 border-orange-300 text-orange-900 shadow-md'; icone = '🔴 VENCIDA'; } else if(falta <= 100) { cor = 'bg-yellow-50 border-yellow-300 text-yellow-800 shadow'; icone = '🟡 ALERTA'; }
+                html += `<div class="border rounded-xl p-4 flex flex-col justify-between ${cor}"><div class="flex justify-between items-start border-b border-current pb-2 mb-2 opacity-80"><h4 class="font-black text-lg">${eq.tag} <span class="text-[10px] font-normal">(${eq.numero_serie})</span></h4><span class="font-bold text-[10px] bg-white px-2 py-0.5 rounded shadow-sm">${icone}</span></div><div class="grid grid-cols-2 gap-2 text-[11px]"><div><p class="opacity-70">Última Prev.</p><p class="font-bold font-mono">${ult}h</p></div><div><p class="opacity-70">Revisão Alvo</p><p class="font-bold font-mono">${alvo}h</p></div></div><div class="mt-3 bg-white p-2 rounded text-center border"><p class="text-[10px] opacity-70 font-bold uppercase">Horímetro Atual</p><p class="font-black text-xl font-mono tracking-wider">${atual}h</p></div></div>`;
+            });
+            box.innerHTML = html;
+        }
+
+        // 5. DASHBOARD E GRÁFICOS
+        function calcularDash() {
+            // O Dashboard usa APENAS a cache filtrada pelo período global
+            const totVar = cache.nfs_periodo.reduce((a, b) => a + Number(b.valor_total), 0); 
+            const totFix = cache.contratos.reduce((a, b) => a + Number(b.valor_mensal), 0);
+            const totGeral = totVar + totFix;
+
+            let valCorr = 0, valPrev = 0, qtdCorr = 0, qtdPrev = 0;
+            let eqSet = new Set();
+            let cat = {}; let quebra = {}; let eqCustoTotal = {}; let evolucaoMes = {};
+
+            cache.nfs_periodo.forEach(n => { 
+                eqSet.add(n.equipamento_id);
+                cat[n.categoria_gasto] = (cat[n.categoria_gasto]||0) + Number(n.valor_total); 
+                
+                let tag = n.equipamentos?.tag || 'Sem TAG';
+                eqCustoTotal[tag] = (eqCustoTotal[tag]||0) + Number(n.valor_total);
+
+                let mesAno = n.data_emissao ? n.data_emissao.substring(0,7) : 'Desc.';
+                evolucaoMes[mesAno] = (evolucaoMes[mesAno]||0) + Number(n.valor_total);
+
+                if(n.tipo_manutencao === 'Preventiva') {
+                    valPrev += Number(n.valor_total); qtdPrev++;
+                } else {
+                    valCorr += Number(n.valor_total); qtdCorr++;
+                    let c = n.causa_quebra||'Outra'; 
+                    quebra[c] = (quebra[c]||0) + Number(n.valor_total);
+                } 
+            });
+
+            const totalNfs = cache.nfs_periodo.length;
+            const ticket = totalNfs > 0 ? totVar / totalNfs : 0;
+            const taxaCorr = totalNfs > 0 ? (qtdCorr / totalNfs) * 100 : 0;
+
+            let sumHorimetros = 0; cache.frota.forEach(eq => sumHorimetros += (eq.horimetro_atual || 0));
+            const cphGeral = sumHorimetros > 0 ? (totVar / sumHorimetros) : 0;
+
+            document.getElementById('dashTotal').innerText = `R$ ${totGeral.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+            document.getElementById('dashVar').innerText = `R$ ${totVar.toLocaleString('pt-BR',{minimumFractionDigits:2})}`; 
+            document.getElementById('dashFix').innerText = `R$ ${totFix.toLocaleString('pt-BR',{minimumFractionDigits:2})}`; 
+            document.getElementById('dashValCorr').innerText = `R$ ${valCorr.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+            document.getElementById('dashValPrev').innerText = `R$ ${valPrev.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+
+            document.getElementById('dashNfs').innerHTML = `${totalNfs} <span class="text-[10px] text-neutral-400 font-bold uppercase">NFs</span>`; 
+            document.getElementById('dashEqAtendidos').innerHTML = `${eqSet.size} <span class="text-[10px] text-neutral-400 font-bold uppercase">Máquinas</span>`;
+            document.getElementById('dashTicket').innerText = `R$ ${ticket.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+            document.getElementById('dashTaxaCorr').innerText = `${taxaCorr.toFixed(1)}%`;
+            document.getElementById('dashCphGeral').innerHTML = `R$ ${cphGeral.toLocaleString('pt-BR',{minimumFractionDigits:2})} <span class="text-[10px] font-bold">/h</span>`;
+            
+            const paleta = ['#ea580c', '#000000', '#f97316', '#404040', '#fb923c', '#737373', '#fdba74'];
+
+            if(graficos.g1) graficos.g1.destroy(); 
+            graficos.g1 = new Chart(document.getElementById('chartCat').getContext('2d'), { type:'doughnut', data:{labels:Object.keys(cat), datasets:[{data:Object.values(cat), backgroundColor: paleta}]}, options:{responsive:true, maintainAspectRatio:false}});
+            
+            if(graficos.g2) graficos.g2.destroy(); 
+            graficos.g2 = new Chart(document.getElementById('chartCau').getContext('2d'), { type:'bar', data:{labels:Object.keys(quebra), datasets:[{label:'R$', data:Object.values(quebra), backgroundColor:'#000000'}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}}});
+
+            // Gráfico 3: Vilões R$
+            let tagsOrdenadas = Object.keys(eqCustoTotal).sort((a, b) => eqCustoTotal[b] - eqCustoTotal[a]).slice(0,10);
+            let dataVilaoRs = tagsOrdenadas.map(t => eqCustoTotal[t]);
+            if(graficos.g3) graficos.g3.destroy(); 
+            graficos.g3 = new Chart(document.getElementById('chartEqCustos').getContext('2d'), { type:'bar', data:{labels:tagsOrdenadas, datasets:[{label:'Custo (R$)', data:dataVilaoRs, backgroundColor:'#dc2626'}]}, options:{indexAxis: 'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}}});
+
+            // Gráfico 4: Evolução Mensal (Linha)
+            let mesesOrd = Object.keys(evolucaoMes).sort();
+            let dataEvo = mesesOrd.map(m => evolucaoMes[m]);
+            let labelsEvo = mesesOrd.map(m => m.split('-').reverse().join('/'));
+            if(graficos.g4) graficos.g4.destroy(); 
+            graficos.g4 = new Chart(document.getElementById('chartEvolucao').getContext('2d'), { type:'line', data:{labels:labelsEvo, datasets:[{label:'Custo Variável (R$)', data:dataEvo, borderColor:'#ea580c', backgroundColor:'#ea580c33', fill:true, tension:0.3}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}}});
+        }
+
+        // 6. CRUD MODAIS
+        function abrirEdicao(tipo, id = null) {
+            const map = { 
+                'fornecedor':{m:'modalFornecedor',f:'formFornecedor',p:'forn',b:cache.fornecedores,k:{id:'id',cnpj:'cnpj',rz:'razao_social',cat:'categoria_atuacao'}}, 
+                'filial':{m:'modalFilial',f:'formFilial',p:'filial',b:cache.filiais,k:{id:'id',nome:'nome',cnpj:'cnpj',cid:'cidade',uf:'estado'}}, 
+                'contrato':{m:'modalContrato',f:'formContrato',p:'contrato',b:cache.contratos,k:{id:'id',desc:'descricao',forn:'fornecedor_id',per:'periodicidade',venc:'data_vencimento',val:'valor_mensal'}}, 
+                'equipamento':{m:'modalEquipamento',f:'formEquipamento',p:'eq',b:cache.frota,k:{id:'id',serie:'numero_serie',tag:'tag',ano:'ano',marca:'marca',modelo:'modelo',hor:'horimetro_atual',ciclo:'intervalo_preventiva',ult:'horimetro_ultima_preventiva'}} 
+            };
+
+            if(tipo === 'usuario') {
+                document.getElementById('formUsuario').reset(); document.querySelectorAll('.chk-fil').forEach(c=>c.checked=false);
+                if(id) { 
+                    const u = cache.usuarios.find(x=>x.id===id); 
+                    document.getElementById('id_usuario').value=u.id; document.getElementById('nm_usr').value=u.nome_completo; document.getElementById('em_usr').value=u.email; document.getElementById('perf_usr').value=u.perfil_acesso; 
+                    let fs=(u.filiais_liberadas||'').split(','); document.querySelectorAll('.chk-fil').forEach(c=>c.checked=fs.includes(c.value)); 
+                } else document.getElementById('id_usuario').value='';
+                return document.getElementById('modalUsuario').classList.remove('hidden');
+            }
+            if(tipo === 'despesa') {
+                const n = cache.nfs_all_branch.find(x=>x.id===id); if(!n) return;
+                document.getElementById('inputIdEdicaoNf').value=n.id; 
+                document.getElementById('inputChaveXml').value=n.chave_xml||''; 
+                document.getElementById('inputEquipamento').value=n.equipamento_id; 
+                document.getElementById('inputHorimetro').value=n.horimetro_registro; 
+                document.getElementById('inputCnpj').value=formatarCNPJ(cache.fornecedores.find(f=>f.id===n.fornecedor_id)?.cnpj||''); 
+                document.getElementById('inputRazaoSocial').value=n.fornecedores?.razao_social||''; 
+                document.getElementById('inputNf').value=n.numero_nf; 
+                document.getElementById('inputDataEmissao').value=n.data_emissao; 
+                document.getElementById('inputTipoManutencao').value=n.tipo_manutencao; 
+                document.getElementById('inputCausa').value=n.causa_quebra||'Nenhuma'; 
+                document.getElementById('inputCategoria').value=n.categoria_gasto; 
+                document.getElementById('inputValor').value=n.valor_total;
+                return mudarAba('despesas');
+            }
+
+            const c = map[tipo]; document.getElementById(c.f).reset(); document.getElementById('id_'+c.p).value='';
+            if(id) { 
+                document.getElementById('tit_'+c.p).innerText='Editar '+tipo; 
+                const item=c.b.find(x=>x.id===id); 
+                for(let k in c.k) { let el=document.getElementById(k+'_'+c.p); if(el&&item[c.k[k]]!==null) el.value=item[c.k[k]]; } 
+            } else { document.getElementById('tit_'+c.p).innerText='Novo '+tipo; }
+            document.getElementById(c.m).classList.remove('hidden');
+        }
+
+        async function salvarTabela(e, tab) {
+            e.preventDefault(); const f=e.target; const b=f.querySelector('button[type="submit"]'); b.disabled=true; b.innerText="Salvando...";
+            const map = {'fornecedores':{id:'id_forn',cnpj:'cnpj_forn',razao_social:'rz_forn',categoria_atuacao:'cat_forn'}, 'filiais':{id:'id_filial',nome:'nome_filial',cnpj:'cnpj_filial',cidade:'cid_filial',estado:'uf_filial'}, 'contratos_recorrentes':{id:'id_contrato',descricao:'desc_contrato',fornecedor_id:'forn_contrato',periodicidade:'per_contrato',data_vencimento:'venc_contrato',valor_mensal:'val_contrato'}, 'equipamentos':{id:'id_eq',numero_serie:'serie_eq',tag:'tag_eq',ano:'ano_eq',marca:'marca_eq',modelo:'modelo_eq',horimetro_atual:'hor_eq',intervalo_preventiva:'ciclo_eq',horimetro_ultima_preventiva:'ult_eq'}}[tab];
+            const p={}; const id = document.getElementById(map.id).value;
+            for(let k in map) { if(k==='id') continue; let el=document.getElementById(map[k]); if(el) p[k]=el.type==='number'?(Number(el.value)||0):el.value; }
+            if(['contratos_recorrentes','equipamentos'].includes(tab)) p.filial_id = contextoApp.filial.id;
+            try { if(id) await db.from(tab).update(p).eq('id',id); else await db.from(tab).insert([p]); f.reset(); document.getElementById(f.parentElement.parentElement.id).classList.add('hidden'); await carregarContextoLocal(); alert("Salvo com sucesso!"); } 
+            catch(err){ alert("Erro: "+err.message); } finally { b.disabled=false; b.innerText="Salvar"; }
+        }
+
+        async function salvarUsuario(e) {
+            e.preventDefault(); const id = document.getElementById('id_usuario').value; const sel = Array.from(document.querySelectorAll('.chk-fil:checked')).map(c=>c.value).join(','); if(!sel) return alert("Selecione filial.");
+            const p = { nome_completo: document.getElementById('nm_usr').value, email: document.getElementById('em_usr').value, perfil_acesso: document.getElementById('perf_usr').value, filiais_liberadas: sel, modulos_liberados: 'Manutenção' };
+            try { if(id) await db.from('usuarios_permissoes').update(p).eq('id',id); else await db.from('usuarios_permissoes').insert([p]); document.getElementById('modalUsuario').classList.add('hidden'); await carregarContextoLocal(); alert("Salvo com sucesso!"); } catch(err){ alert("Erro ao salvar."); }
+        }
+
+        async function excluirBase(t, id) { if(!confirm("Excluir permanentemente?")) return; const {error}=await db.from(t).delete().eq('id',id); if(error) alert("Erro: "+error.message); else await carregarContextoLocal(); }
+
+        // 7. LANÇAMENTO DA NF
+        document.getElementById('formLancarNf').addEventListener('submit', async function(e) {
+            e.preventDefault(); const btn = document.getElementById('btnSalvarL'); btn.disabled=true; btn.innerText="Gravando...";
+            try {
+                const idEdicao = document.getElementById('inputIdEdicaoNf').value; const ch = document.getElementById('inputChaveXml').value.trim(); const nr = document.getElementById('inputNf').value.trim(); const cnpj = document.getElementById('inputCnpj').value.trim(); const rz = document.getElementById('inputRazaoSocial').value.trim(); const tipo = document.getElementById('inputTipoManutencao').value; const hor = Number(document.getElementById('inputHorimetro').value); const eqId = document.getElementById('inputEquipamento').value;
+                if(!eqId) { alert("Selecione a máquina."); btn.disabled=false; btn.innerText="Salvar Despesa"; return; }
+                
+                let { data: forn } = await db.from('fornecedores').select('id').eq('cnpj', cnpj).maybeSingle();
+                if (!forn) { const { data: novoF } = await db.from('fornecedores').insert([{ cnpj, razao_social: rz }]).select().single(); forn = novoF; }
+
+                if (!idEdicao && ch) { const { data: ex } = await db.from('despesas_nf').select('id').eq('chave_xml', ch).maybeSingle(); if (ex) { alert(`⛔ Chave já gravada.`); btn.disabled=false; btn.innerText="Salvar Despesa"; return; } }
+
+                let upEq = { horimetro_atual: hor }; if(tipo === 'Preventiva') upEq.horimetro_ultima_preventiva = hor; await db.from('equipamentos').update(upEq).eq('id', eqId); 
+
+                const payload = { filial_id: contextoApp.filial.id, equipamento_id: eqId, fornecedor_id: forn.id, numero_nf: nr, chave_xml: ch||null, data_emissao: document.getElementById('inputDataEmissao').value, horimetro_registro: hor, tipo_manutencao: tipo, causa_quebra: document.getElementById('inputCausa').value, categoria_gasto: document.getElementById('inputCategoria').value, valor_total: Number(document.getElementById('inputValor').value) };
+                if (idEdicao) await db.from('despesas_nf').update(payload).eq('id', idEdicao); else await db.from('despesas_nf').insert([payload]);
+                limparFormularioNf(); await carregarContextoLocal(); mudarAba('custos');
+            } catch (err) { alert("❌ Erro: " + err.message); } finally { btn.disabled=false; btn.innerText="Salvar Despesa"; }
+        });
+
+        // 8. UTILS E XML UNIVERSAL
+        function renderizarHTML(id, arr) { document.getElementById(id).innerHTML = arr.length ? arr.join('') : '<tr><td colspan="10" class="p-4 text-center text-neutral-400">Nenhum registro encontrado.</td></tr>'; }
+        function limparFormularioNf() { document.getElementById('formLancarNf').reset(); document.getElementById('inputIdEdicaoNf').value=''; document.getElementById('status-xml-msg').classList.add('hidden'); }
+        function formatarCNPJ(v) { v = v.replace(/\D/g, ""); if (v.length === 14) return v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5"); return v; }
+        function mudarAba(id) { document.querySelectorAll('.aba-conteudo').forEach(el => el.classList.remove('ativa')); document.querySelectorAll('.btn-menu').forEach(btn => btn.classList.remove('bg-orange-600', 'text-white')); document.getElementById('aba-' + id).classList.add('ativa'); document.getElementById('btn-' + id).classList.add('bg-orange-600', 'text-white'); const maps = { 'dashboard':'Dashboard', 'despesas':'Lançamento de NF/NFS-e', 'custos':'Matriz de Custos / Auditoria', 'contratos':'Contratos Fixos', 'preventivas':'Painel Preventivas', 'frota':'Gestão de Frota', 'fornecedores':'Base Global de Fornecedores', 'filiais':'Bases Operacionais', 'usuarios':'Gestão de Usuários' }; document.getElementById('titulo-pagina').innerText = maps[id]||id; }
+
+        function getXml(xml, tag) { const el = xml.getElementsByTagName("*"); for (let i=0; i<el.length; i++) { if(el[i].localName.toLowerCase()===tag.toLowerCase()) return el[i].textContent.trim(); } return ""; }
+        function lerTexto(f) { return new Promise((r, j) => { const reader = new FileReader(); reader.onload=e=>r(e.target.result); reader.onerror=e=>j(e); reader.readAsText(f); }); }
+        
+        async function processarArquivoXml(file) {
+            if(!file) return; const msg = document.getElementById('status-xml-msg');
+            try {
+                let xmlT = await lerTexto(file); xmlT = xmlT.replace(/xmlns="[^"]*"/g, '');
+                const p = new DOMParser(); const doc = p.parseFromString(xmlT, "text/xml");
+                
+                const isServico = doc.getElementsByTagName("NFS-e").length > 0 || doc.getElementsByTagName("infNFSe").length > 0;
+                let nNF = isServico ? getXml(doc, "numero") || getXml(doc, "nNFS-e") : getXml(doc, "nNF");
+                if(!nNF) return alert("XML não reconhecido.");
+                
+                let ch = ""; if(!isServico) { ch = getXml(doc, "chNFe"); if(!ch) { let inf=doc.getElementsByTagName("infNFe")[0]; if(inf&&inf.getAttribute("Id")) ch=inf.getAttribute("Id").replace(/\D/g, ""); } }
+                const cnpj = isServico ? (getXml(doc, "CNPJ") || getXml(doc, "Cnpj")) : getXml(doc, "CNPJ");
+                let rz = isServico ? (getXml(doc, "xNome") || getXml(doc, "RazaoSocial")) : getXml(doc, "xNome");
+                let dEmi = getXml(doc,"dhEmi") || getXml(doc,"dEmi") || getXml(doc,"DataEmissao"); 
+                const v = isServico ? (getXml(doc, "vServ") || getXml(doc, "ValorServicos") || getXml(doc, "vLiq") || getXml(doc, "vtLiq")) : getXml(doc, "vNF");
+
+                document.getElementById('inputChaveXml').value = ch; 
+                document.getElementById('inputCnpj').value = formatarCNPJ(cnpj); 
+                document.getElementById('inputRazaoSocial').value = rz; 
+                document.getElementById('inputNf').value = nNF; 
+                document.getElementById('inputDataEmissao').value = dEmi ? dEmi.substring(0,10) : ''; 
+                document.getElementById('inputValor').value = v ? parseFloat(v).toFixed(2) : '';
+
+                if(ch) { const {data} = await db.from('despesas_nf').select('id').eq('chave_xml',ch).maybeSingle(); if(data) { msg.className="text-xs p-3 bg-red-100 text-red-900 border border-red-200 rounded-lg font-bold"; msg.innerHTML=`⛔ NF-e ${nNF} já existe no banco.`; msg.classList.remove('hidden'); return; } }
+                msg.className="text-xs p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg font-medium"; msg.innerHTML=`✓ ${isServico?'NFS-e (Serviço)':'NF-e (Produto)'} lida! Complete a máquina e a categoria.`; msg.classList.remove('hidden');
+            } catch(e) { alert("Erro ao interpretar XML."); }
+        }
+
+        function configurarDragAndDrop() {
+            const z = document.getElementById('drop-zone'); const inp = document.getElementById('inputXmlFile');
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => z.addEventListener(e, ev => ev.preventDefault()));
+            z.addEventListener('click', () => { inp.value=''; inp.click(); });
+            inp.addEventListener('change', (e) => { if(e.target.files.length) processarArquivoXml(e.target.files[0]); });
+            z.addEventListener('drop', e => { if(e.dataTransfer.files.length) processarArquivoXml(e.dataTransfer.files[0]); });
+        }
+    </script>
+</body>
+</html>
