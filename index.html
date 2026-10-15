@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SEGURA ARM - Sistema de Manutenção</title>
+    <title>SEGURA ARM - Sistema de Gestão Operacional</title>
     
     <!-- Ícone do Navegador (Favicon) -->
     <link rel="icon" href="logo_cavalo.png" type="image/png">
@@ -56,7 +56,10 @@
             </div>
         </div>
         <nav class="p-3 space-y-1 text-sm font-medium">
-            <p class="px-3 pt-3 pb-1 text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Módulo Manutenção</p>
+            <p class="px-3 pt-3 pb-1 text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Módulo WMS / Operacional</p>
+            <button onclick="mudarAba('entrada-saida')" id="btn-entrada-saida" class="btn-menu w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-neutral-300 hover:bg-neutral-800 transition"><span>📦</span> Entrada e Saída (WMS)</button>
+
+            <p class="px-3 pt-4 pb-1 text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Módulo Manutenção</p>
             <button onclick="mudarAba('dashboard')" id="btn-dashboard" class="btn-menu w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-neutral-300 hover:bg-neutral-800 transition"><span>📊</span> Dashboard</button>
             <button onclick="mudarAba('despesas')" id="btn-despesas" class="btn-menu w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-neutral-300 hover:bg-neutral-800 transition"><span>🧾</span> Lançamentos (NFs)</button>
             <button onclick="mudarAba('custos')" id="btn-custos" class="btn-menu w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-neutral-300 hover:bg-neutral-800 transition"><span>💲</span> Matriz de Custos</button>
@@ -92,6 +95,165 @@
         </header>
 
         <main class="p-6 space-y-6">
+
+            <!-- 0. ABA ENTRADA E SAÍDA (WMS PROVISÓRIO) -->
+            <div id="aba-entrada-saida" class="aba-conteudo space-y-6">
+                <!-- Cabeçalho do Módulo -->
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-black p-6 rounded-xl text-white">
+                    <div>
+                        <h2 class="text-2xl font-bold tracking-tight text-orange-500">WMS / Gestão de Armazenagem e Coletor</h2>
+                        <p class="text-neutral-400 text-xs">Entrada/Saída por leitor barcode, controle por NS, Seguro do Estoque e Cálculo de Pico Mensal.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="abrirModalProdutoWms()" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-bold transition shadow-sm text-xs">
+                            + Cadastrar Produto
+                        </button>
+                        <button onclick="exportarEstoqueCsv()" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-bold transition shadow-sm text-xs">
+                            📥 Exportar Planilha
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cards de Resumo -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white p-5 rounded-xl border border-neutral-200 shadow-sm">
+                        <span class="text-xs font-semibold text-neutral-500 uppercase">Itens Armazenados</span>
+                        <p id="wms-total-itens" class="text-2xl font-bold text-neutral-900 mt-1">0</p>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-neutral-200 shadow-sm">
+                        <span class="text-xs font-semibold text-neutral-500 uppercase">Posições Ocupadas Atuais</span>
+                        <p id="wms-total-posicoes" class="text-2xl font-bold text-orange-600 mt-1">0.00</p>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-neutral-200 shadow-sm">
+                        <span class="text-xs font-semibold text-neutral-500 uppercase">Valor Total Estoque (Seguro)</span>
+                        <p id="wms-total-valor-seguro" class="text-2xl font-bold text-emerald-600 mt-1">R$ 0,00</p>
+                    </div>
+                </div>
+
+                <!-- Terminal do Coletor de Dados -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-xl border-2 border-orange-500 shadow-md space-y-4">
+                        <h3 class="text-sm font-bold text-neutral-900 border-b border-neutral-200 pb-2 flex items-center gap-2">
+                            📱 Terminal do Coletor / Leitor
+                        </h3>
+
+                        <div>
+                            <label class="block text-xs font-bold text-neutral-700 mb-1">Operação</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button id="btn-op-saida" onclick="definirTipoOperacaoWms('SAIDA')" class="py-3 text-center rounded-lg font-bold text-xs bg-orange-600 text-white border border-orange-600 shadow">
+                                    Saída (Expedição)
+                                </button>
+                                <button id="btn-op-entrada" onclick="definirTipoOperacaoWms('ENTRADA')" class="py-3 text-center rounded-lg font-bold text-xs bg-neutral-100 text-neutral-600 border border-neutral-300">
+                                    Entrada (Recebimento)
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-neutral-700 mb-1">Nº Pedido / NF</label>
+                                <input type="text" id="wms-doc-numero" placeholder="Ex: 10450" class="w-full border rounded-lg p-2 text-xs font-bold">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-neutral-700 mb-1">Cadastro (Dono)</label>
+                                <input type="text" id="wms-doc-cliente" value="ProHospital" class="w-full border rounded-lg p-2 text-xs bg-neutral-50">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-neutral-700 mb-1">Produto Operado *</label>
+                            <select id="wms-select-produto" class="w-full border border-neutral-300 rounded-lg p-2.5 text-xs font-bold focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                                <option value="">-- Selecione o Produto --</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-orange-800 mb-1">Bipar Código / NS *</label>
+                            <input type="text" id="wms-input-bipagem" placeholder="Aguardando leitor..." 
+                                   class="w-full border-2 border-orange-600 rounded-lg p-3 text-base font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-orange-600 bg-orange-50" autofocus>
+                            <p class="text-[10px] text-neutral-500 mt-1">Pressione [ENTER] no coletor após a leitura.</p>
+                        </div>
+
+                        <div id="wms-feedback-operacao" class="p-3 rounded-lg text-xs font-bold hidden"></div>
+                    </div>
+
+                    <!-- Tabela de Movimentações Recentes -->
+                    <div class="lg:col-span-2 bg-white p-6 rounded-xl border border-neutral-200 shadow-sm space-y-4">
+                        <div class="flex justify-between items-center border-b border-neutral-200 pb-2">
+                            <h3 class="text-sm font-bold text-neutral-900">Histórico de Bipagens Recentes</h3>
+                            <button onclick="carregarMovimentacoesWms()" class="text-xs text-orange-700 hover:underline font-semibold">Atualizar Tabela</button>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-neutral-900 text-white text-[11px] uppercase">
+                                        <th class="p-3 rounded-tl-lg">Data/Hora</th>
+                                        <th class="p-3">Operação</th>
+                                        <th class="p-3">Código</th>
+                                        <th class="p-3">Descrição Produto</th>
+                                        <th class="p-3">Nº Série (NS)</th>
+                                        <th class="p-3 rounded-tr-lg">Qtde</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="wms-tabela-movimentos" class="divide-y divide-neutral-200">
+                                    <tr><td colspan="6" class="p-4 text-center text-neutral-500">Carregando histórico...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Consulta de Pico Mensal para Faturamento -->
+                <div class="bg-black text-white p-6 rounded-xl shadow-md space-y-4">
+                    <h3 class="text-sm font-bold text-orange-500 uppercase tracking-wide">📊 Fechamento Mensal: Pico de Posições e Valor em Estoque</h3>
+                    <div class="flex flex-col md:flex-row items-end gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-neutral-300 mb-1">Mês/Ano do Fechamento</label>
+                            <input type="month" id="wms-mes-relatorio" class="border rounded-lg p-2 text-xs text-black font-bold">
+                        </div>
+                        <button onclick="gerarRelatorioPicoMensal()" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg text-xs transition">
+                            Consultar Pico do Mês
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-neutral-800">
+                        <div><span class="text-[10px] text-neutral-400 font-bold uppercase">Dia do Pico no Mês:</span><p id="wms-pico-data" class="text-lg font-bold text-white">-</p></div>
+                        <div><span class="text-[10px] text-neutral-400 font-bold uppercase">Pico de Posições Ocupadas:</span><p id="wms-pico-posicoes" class="text-lg font-bold text-orange-500">0.00 posições</p></div>
+                        <div><span class="text-[10px] text-neutral-400 font-bold uppercase">Valor Armazenado no Pico (Seguro):</span><p id="wms-pico-valor" class="text-lg font-bold text-emerald-400">R$ 0,00</p></div>
+                    </div>
+                </div>
+
+                <!-- Tabela de Inventário Atual em Galpão -->
+                <div class="bg-white p-6 rounded-xl border border-neutral-200 shadow-sm space-y-4">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 border-b border-neutral-200 pb-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-neutral-900">Produtos Armazenados em Estoque</h3>
+                        </div>
+                        <input type="text" id="wms-filtro-estoque" onkeyup="filtrarTabelaEstoqueWms()" placeholder="Buscar por Código, NS ou Produto..." class="border border-neutral-300 rounded-lg px-3 py-1.5 text-xs w-full md:w-64">
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-neutral-100 border-b border-neutral-200 text-[11px] font-bold text-neutral-700 uppercase">
+                                    <th class="p-3">Código</th>
+                                    <th class="p-3">Descrição Produto</th>
+                                    <th class="p-3">Nº Série</th>
+                                    <th class="p-3">Dono (Cadastro)</th>
+                                    <th class="p-3">Qtde</th>
+                                    <th class="p-3">Endereço</th>
+                                    <th class="p-3">Posições Ocupadas</th>
+                                    <th class="p-3">Valor Total Seguro (R$)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="wms-tabela-estoque" class="divide-y divide-neutral-200">
+                                <tr><td colspan="8" class="p-4 text-center text-neutral-500">Carregando estoque...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
             <!-- 1. ABA LANÇAMENTOS -->
             <div id="aba-despesas" class="aba-conteudo ativa space-y-6">
@@ -328,6 +490,48 @@
          MODAIS DE CADASTRO/EDIÇÃO (CRUD)
     ====================================== -->
 
+    <!-- Modal: Cadastro de Produto WMS -->
+    <div id="modal-wms-produto" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4 border-t-4 border-orange-600">
+            <h3 class="text-base font-bold text-neutral-900">Cadastrar Novo Produto</h3>
+            <form id="form-wms-produto" onsubmit="salvarProdutoWms(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-neutral-700">Código do Produto *</label>
+                    <input type="text" id="wms-prod-codigo" required class="w-full border rounded-lg p-2 text-xs font-mono">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-neutral-700">Descrição do Produto *</label>
+                    <input type="text" id="wms-prod-desc" required class="w-full border rounded-lg p-2 text-xs">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-neutral-700">Dono do Material (Cadastro)</label>
+                    <input type="text" id="wms-prod-cliente" value="ProHospital" required class="w-full border rounded-lg p-2 text-xs">
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-neutral-700">Exige NS?</label>
+                        <select id="wms-prod-exige-ns" class="w-full border rounded-lg p-2 text-xs font-bold">
+                            <option value="true">SIM</option>
+                            <option value="false">NÃO</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-neutral-700">Posição (Fator)</label>
+                        <input type="number" step="0.1" id="wms-prod-fator" value="1.0" required class="w-full border rounded-lg p-2 text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-neutral-700">Valor Seguro R$</label>
+                        <input type="number" step="0.01" id="wms-prod-valor" value="0.00" required class="w-full border rounded-lg p-2 text-xs font-bold">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="fecharModalProdutoWms()" class="px-4 py-2 border rounded-lg text-xs font-medium">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-orange-600 text-white rounded-lg text-xs font-bold shadow">Salvar Produto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal Contrato (COM DATA DE INÍCIO E TÉRMINO) -->
     <div id="modalContrato" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden border-t-4 border-orange-600">
@@ -428,7 +632,7 @@
     </div>
 
     <!-- ==========================================
-         SISTEMA LÓGICO - JAVASCRIPT
+         SISTEMA LÓGICO - JAVASCRIPT CORE
     =========================================== -->
     <script>
         const SUPABASE_URL = 'https://jkwhakxzjopdgbprkkth.supabase.co';
@@ -469,7 +673,7 @@
             document.getElementById('modalSessao').classList.add('hidden');
             document.getElementById('lblFilialSessao').innerText = contextoApp.filial.nome;
             
-            mudarAba('dashboard');
+            mudarAba('entrada-saida');
             await carregarContextoLocal();
         }
 
@@ -497,7 +701,7 @@
             document.getElementById('forn_contrato').innerHTML = cache.fornecedores.map(f => `<option value="${f.id}">${f.razao_social}</option>`).join('');
             
             renderizarHTML('tblForn', cache.fornecedores.map(f => `<tr class="hover:bg-neutral-50"><td class="p-3 font-bold">${f.razao_social}</td><td class="p-3">${f.cnpj}</td><td class="p-3 text-center"><button onclick="abrirEdicao('fornecedor', ${f.id})" class="text-orange-600 hover:text-orange-800 mx-1">✏</button><button onclick="excluirBase('fornecedores', ${f.id})" class="text-neutral-500 hover:text-black mx-1">🗑</button></td></tr>`));
-            renderizarHTML('tblFiliais', cache.filiais.map(f => `<tr class="hover:bg-neutral-50"><td class="p-3 font-bold">${f.nome}</td><td class="p-3">${f.cnpj||'-'}</td><td class="p-3">${f.cidade||'-'}/${f.estado||'-'}</td><td class="p-3 text-center"><button onclick="abrirEdicao('filial', ${f.id})" class="text-orange-600 hover:text-orange-800 mx-1">✏️</button><button onclick="excluirBase('filiais', ${f.id})" class="text-neutral-500 hover:text-black mx-1">🗑️️</button></td></tr>`));
+            renderizarHTML('tblFiliais', cache.filiais.map(f => `<tr class="hover:bg-neutral-50"><td class="p-3 font-bold">${f.nome}</td><td class="p-3">${f.cnpj||'-'}</td><td class="p-3">${f.cidade||'-'}/${f.estado||'-'}</td><td class="p-3 text-center"><button onclick="abrirEdicao('filial', ${f.id})" class="text-orange-600 hover:text-orange-800 mx-1">✏️</button><button onclick="excluirBase('filiais', ${f.id})" class="text-neutral-500 hover:text-black mx-1">🗑</button></td></tr>`));
             renderizarHTML('tblUsuarios', cache.usuarios.map(u => `<tr class="hover:bg-neutral-50"><td class="p-3 font-bold">${u.nome_completo}<br><span class="text-[10px] text-neutral-500 font-normal">${u.email}</span></td><td class="p-3 text-center"><span class="bg-neutral-200 px-2 rounded text-[10px] font-bold text-neutral-800">${u.perfil_acesso}</span></td><td class="p-3 text-center">${(u.filiais_liberadas||'').split(',').length}</td><td class="p-3 text-center"><button onclick="abrirEdicao('usuario', ${u.id})" class="text-orange-600 hover:text-orange-800 mx-1">✏️</button><button onclick="excluirBase('usuarios_permissoes', ${u.id})" class="text-neutral-500 hover:text-black mx-1">🗑️</button></td></tr>`));
 
             // Locais (Filial Atual)
@@ -514,14 +718,13 @@
             let limitDate = getLimitePeriodo();
             cache.nfs_periodo = cache.nfs_all_branch.filter(n => {
                 if(!n.data_emissao) return false;
-                if(!limitDate) return true; // 'tudo'
+                if(!limitDate) return true;
                 let dEmi = new Date(n.data_emissao + "T00:00:00");
                 return dEmi >= limitDate;
             });
             
             document.getElementById('inputEquipamento').innerHTML = '<option value="">Selecione a Máquina (Frota Local)...</option>' + cache.frota.map(eq => `<option value="${eq.id}">${eq.tag} (${eq.numero_serie})</option>`).join('');
 
-            // Tabela de Contratos exibindo Início ➔ Término
             renderizarHTML('tblContratos', cache.contratos.map(c => {
                 let dIni = c.data_inicio ? c.data_inicio.split('-').reverse().join('/') : '01/01/2025';
                 let dFim = c.data_vencimento ? c.data_vencimento.split('-').reverse().join('/') : '-';
@@ -534,6 +737,11 @@
             aplicarFiltrosMatriz();
             calcularDash();
             calcularPreventivas();
+
+            // Inicializa dados do WMS se a função existir
+            if(typeof inicializarModuloWMS === 'function') {
+                inicializarModuloWMS();
+            }
         }
 
         // 3. MATRIZ DE CUSTOS, FILTROS E EXPORTAÇÃO
@@ -702,13 +910,11 @@
             if(graficos.g2) graficos.g2.destroy(); 
             graficos.g2 = new Chart(document.getElementById('chartCau').getContext('2d'), { type:'bar', data:{labels:Object.keys(quebra), datasets:[{label:'R$', data:Object.values(quebra), backgroundColor:'#000000'}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}}});
 
-            // Gráfico 3: Vilões R$
             let tagsOrdenadas = Object.keys(eqCustoTotal).sort((a, b) => eqCustoTotal[b] - eqCustoTotal[a]).slice(0,10);
             let dataVilaoRs = tagsOrdenadas.map(t => eqCustoTotal[t]);
             if(graficos.g3) graficos.g3.destroy(); 
             graficos.g3 = new Chart(document.getElementById('chartEqCustos').getContext('2d'), { type:'bar', data:{labels:tagsOrdenadas, datasets:[{label:'Custo (R$)', data:dataVilaoRs, backgroundColor:'#dc2626'}]}, options:{indexAxis: 'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}}});
 
-            // Gráfico 4: Evolução Mensal (Linha)
             let mesesOrd = Object.keys(evolucaoMes).sort();
             let dataEvo = mesesOrd.map(m => evolucaoMes[m]);
             let labelsEvo = mesesOrd.map(m => m.split('-').reverse().join('/'));
@@ -805,7 +1011,31 @@
         function renderizarHTML(id, arr) { document.getElementById(id).innerHTML = arr.length ? arr.join('') : '<tr><td colspan="10" class="p-4 text-center text-neutral-400">Nenhum registro encontrado.</td></tr>'; }
         function limparFormularioNf() { document.getElementById('formLancarNf').reset(); document.getElementById('inputIdEdicaoNf').value=''; document.getElementById('status-xml-msg').classList.add('hidden'); }
         function formatarCNPJ(v) { v = v.replace(/\D/g, ""); if (v.length === 14) return v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5"); return v; }
-        function mudarAba(id) { document.querySelectorAll('.aba-conteudo').forEach(el => el.classList.remove('ativa')); document.querySelectorAll('.btn-menu').forEach(btn => btn.classList.remove('bg-orange-600', 'text-white')); document.getElementById('aba-' + id).classList.add('ativa'); document.getElementById('btn-' + id).classList.add('bg-orange-600', 'text-white'); const maps = { 'dashboard':'Dashboard', 'despesas':'Lançamento de NF/NFS-e', 'custos':'Matriz de Custos / Auditoria', 'contratos':'Contratos Fixos', 'preventivas':'Painel Preventivas', 'frota':'Gestão de Frota', 'fornecedores':'Base Global de Fornecedores', 'filiais':'Bases Operacionais', 'usuarios':'Gestão de Usuários' }; document.getElementById('titulo-pagina').innerText = maps[id]||id; }
+        
+        function mudarAba(id) { 
+            document.querySelectorAll('.aba-conteudo').forEach(el => el.classList.remove('ativa')); 
+            document.querySelectorAll('.btn-menu').forEach(btn => btn.classList.remove('bg-orange-600', 'text-white')); 
+            
+            const aba = document.getElementById('aba-' + id);
+            const btn = document.getElementById('btn-' + id);
+            
+            if(aba) aba.classList.add('ativa'); 
+            if(btn) btn.classList.add('bg-orange-600', 'text-white'); 
+            
+            const maps = { 
+                'entrada-saida': 'Entrada e Saída / WMS',
+                'dashboard':'Dashboard', 
+                'despesas':'Lançamento de NF/NFS-e', 
+                'custos':'Matriz de Custos / Auditoria', 
+                'contratos':'Contratos Fixos', 
+                'preventivas':'Painel Preventivas', 
+                'frota':'Gestão de Frota', 
+                'fornecedores':'Base Global de Fornecedores', 
+                'filiais':'Bases Operacionais', 
+                'usuarios':'Gestão de Usuários' 
+            }; 
+            document.getElementById('titulo-pagina').innerText = maps[id] || id; 
+        }
 
         function getXml(xml, tag) { const el = xml.getElementsByTagName("*"); for (let i=0; i<el.length; i++) { if(el[i].localName.toLowerCase()===tag.toLowerCase()) return el[i].textContent.trim(); } return ""; }
         function lerTexto(f) { return new Promise((r, j) => { const reader = new FileReader(); reader.onload=e=>r(e.target.result); reader.onerror=e=>j(e); reader.readAsText(f); }); }
@@ -840,11 +1070,15 @@
 
         function configurarDragAndDrop() {
             const z = document.getElementById('drop-zone'); const inp = document.getElementById('inputXmlFile');
+            if(!z) return;
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => z.addEventListener(e, ev => ev.preventDefault()));
             z.addEventListener('click', () => { inp.value=''; inp.click(); });
             inp.addEventListener('change', (e) => { if(e.target.files.length) processarArquivoXml(e.target.files[0]); });
             z.addEventListener('drop', e => { if(e.dataTransfer.files.length) processarArquivoXml(e.dataTransfer.files[0]); });
         }
     </script>
+
+    <!-- JS DO MÓDULO WMS (ENTRADA E SAÍDA) -->
+    <script src="js/modulo-entrada-saida.js"></script>
 </body>
 </html>
